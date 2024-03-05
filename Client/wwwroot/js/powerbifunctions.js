@@ -1,0 +1,166 @@
+function updateReport(reportname,reportid) {
+    //alert(reportname);
+    var models = window["powerbi-client"].models;
+    var reportContainer = $("#report-container" + reportname).get(0);
+    //$("#report-container iframe").attr('src', '');
+    //alert();
+    // Initialize iframe for embedding report
+  //  powerbi.bootstrap(reportContainer, { type: "report" });
+    $.ajax({
+        type: "GET",
+        url: "/api/PowerBIEmbedInfo/GetEmbedInfoReport?reportID=" + reportid,
+        success: function (data) {
+            embedData = $.parseJSON(data);
+            reportLoadConfig = {
+                type: "report",
+                tokenType: models.TokenType.Embed,
+                accessToken: embedData.EmbedToken.Token,
+                // You can embed different reports as per your need
+                embedUrl: embedData.EmbedReport[0].EmbedUrl,
+
+                // Enable this setting to remove gray shoulders from embedded report
+                // settings: {
+                //     background: models.BackgroundType.Transparent
+                // }
+            };
+
+            // Use the token expiry to regenerate Embed token for seamless end user experience
+            // Refer https://aka.ms/RefreshEmbedToken
+            tokenExpiry = embedData.EmbedToken.Expiration;
+
+            // Embed Power BI report when Access token and Embed URL are available
+            var report = powerbi.embed(reportContainer, reportLoadConfig);
+
+            // Clear any other loaded handler events
+            report.off("loaded");
+
+            // Triggers when a report schema is successfully loaded
+            report.on("loaded", function () {
+                console.log("Report load successful");
+                $("#loading" + reportname).hide();
+                $("#content" + reportname).show();
+            });
+
+            // Clear any other rendered handler events
+            report.off("rendered");
+
+            // Triggers when a report is successfully embedded in UI
+            report.on("rendered", function () {
+                console.log("Report render successful");
+              
+            });
+
+            // Clear any other error handler events
+            report.off("error");
+
+            // Handle embed errors
+            report.on("error", function (event) {
+                var errorMsg = event.detail;
+
+                // Use errorMsg variable to log error in any destination of choice
+                console.error(errorMsg);
+                return;
+            });
+        },
+        error: function (err) {
+
+            // Show error container
+            var errorContainer = $(".error-container");
+            $(".embed-container").hide();
+            errorContainer.show();
+
+            // Format error message
+            var errMessageHtml = "<strong> Error Details: </strong> <br/>" + err.responseText;
+            errMessageHtml = errMessageHtml.split("\n").join("<br/>");
+
+            // Show error message on UI
+            errorContainer.append(errMessageHtml);
+        }
+    });
+}
+
+
+//$(function () {
+
+
+    function Report2() {
+   // }
+
+    var models = window["powerbi-client"].models;
+        var reportContainer = $("#report-container-Paris").get(0);
+        
+    // Initialize iframe for embedding report
+    //powerbi.bootstrap(reportContainer, { type: "report" });
+    
+    $.ajax({
+        type: "GET",
+        url: "/api/PowerBIEmbedInfo/getembedinfo",
+        success: function (data) {
+            embedData = $.parseJSON(data);
+            reportLoadConfig = {
+                type: "report",
+                tokenType: models.TokenType.Embed,
+                accessToken: embedData.EmbedToken.Token,
+                // You can embed different reports as per your need
+                embedUrl: embedData.EmbedReport[0].EmbedUrl,
+
+                // Enable this setting to remove gray shoulders from embedded report
+                // settings: {
+                //     background: models.BackgroundType.Transparent
+                // }
+            };
+
+            // Use the token expiry to regenerate Embed token for seamless end user experience
+            // Refer https://aka.ms/RefreshEmbedToken
+            tokenExpiry = embedData.EmbedToken.Expiration;
+            
+            // Embed Power BI report when Access token and Embed URL are available
+            var report = powerbi.embed(reportContainer, reportLoadConfig);
+            
+            // Clear any other loaded handler events
+            report.off("loaded");
+
+            // Triggers when a report schema is successfully loaded
+            report.on("loaded", function () {
+                console.log("default Report load successful");
+                $("#loadingParis").hide();
+                $("#contentParis").show();
+            });
+
+            // Clear any other rendered handler events
+            report.off("rendered");
+
+            // Triggers when a report is successfully embedded in UI
+            report.on("rendered", function () {
+                console.log("default Report render successful");
+                
+            });
+
+            // Clear any other error handler events
+            report.off("error");
+            
+            // Handle embed errors
+            report.on("error", function (event) {
+                var errorMsg = event.detail;
+            
+                // Use errorMsg variable to log error in any destination of choice
+                console.error(errorMsg);
+                return;
+            });
+        },
+        error: function (err) {
+            
+            // Show error container
+            var errorContainer = $(".error-container");
+            $(".embed-container").hide();
+            errorContainer.show();
+            
+            // Format error message
+            var errMessageHtml = "<strong> Error Details: </strong> <br/>" + err.responseText;
+            errMessageHtml = errMessageHtml.split("\n").join("<br/>");
+
+            // Show error message on UI
+            errorContainer.append(errMessageHtml);
+        }
+    });
+}

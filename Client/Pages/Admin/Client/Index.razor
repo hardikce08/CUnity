@@ -1,0 +1,257 @@
+﻿@page "/admin/clients"
+@layout AdminLayout
+@attribute [Authorize(Roles = DefaultRoleNames.SuperAdmin)]
+@inject AppState appState
+@inject CustomStateProvider SessionState
+@inject HttpClient Http
+@inject IMatToaster matToaster
+@inject NavigationManager navigationManager
+<h3>Clients</h3>
+<div class="form-group">
+    <a class="btn btn-success" @onclick="@(() => OpenCreateorEditDialog(0))"><i class="oi oi-plus"></i> Create New</a>
+</div>
+<br>
+
+@if (clients == null)
+{
+    <text>Loading...</text> }
+else if (clients.Length == 0)
+{
+    <text>No Records Found.</text> }
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Name</th>
+                <th>Azure Group</th>
+                <th>Object Id</th>
+                <th></th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (ClientListView dev in clients)
+            {
+                <tr>
+                    <td>@dev.Id</td>
+                    <td>@dev.Name</td>
+                    <td>@dev.AzureGroupName </td>
+                    <td>@dev.AzureObjectId </td>
+                    @if (!string.IsNullOrEmpty(dev.AzureGroupName))
+                    {
+                        <td>
+                            <a class="btn btn-primary" href="/admin/clients/AssignUser/@dev.AzureObjectId"><i class="oi oi-plus"></i>View/Assign Users</a>
+                            @*<button class="btn btn-danger" @onclick="@(() => OpenDeleteDeveloperDialog(dev.Id))">Delete</button>*@
+                        </td>
+                    }
+                    else
+                    {
+                        <td>
+                            <MatButton class="float-right" @onclick="@(() => CreateOnlyAzureGroup(dev.Id,dev.Name))" Raised="true">Create Azure Group</MatButton>
+                        </td>
+                    }
+                    <td>
+                        <a class="btn btn-success" @onclick="@(() => OpenCreateorEditDialog(dev.Id))">Edit</a>
+                        @*<button class="btn btn-danger" @onclick="@(() => OpenDeleteDeveloperDialog(dev.Id))">Delete</button>*@
+                    </td>
+                    @if (!string.IsNullOrEmpty(dev.AzureGroupName) && string.IsNullOrEmpty(dev.PowerBIWorkSpaceId))
+                    {
+                        <td>
+                            <MatButton class="float-right" @onclick="@(() => CreateOnlyPowerBIWorkSpace(dev.Id,dev.AzureObjectId,dev.AzureGroupName))" Raised="true">Create PowerBI WorkSpace</MatButton>
+                        </td>
+                    }
+                    @if (!string.IsNullOrEmpty(dev.PowerBIWorkSpaceId) && dev.IsReportCopied == false)
+                    {
+                        <td>
+                            <MatButton class="float-right" @onclick="@(() => CopyPowerBIReports(dev.Id,dev.PowerBIWorkSpaceId))" Raised="true">Copy PowerBI Reports</MatButton>
+                        </td>
+                    }
+                </tr>
+            }
+
+        </tbody>
+    </table>}
+
+<MatDialog @bind-IsOpen="@isCreateorEditDialogOpen">
+    <MatDialogTitle>New Client</MatDialogTitle>
+    <MatDialogContent>
+        <EditForm Model="@currentclient">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <fieldset>
+                <div class="form-group">
+                    <MatTextField @bind-Value="@currentclient.Name" Label="Client Name" Icon="description" IconTrailing="true" FullWidth="true"></MatTextField>
+                    <ValidationMessage For="@(() => currentclient.Name)" />
+                </div>
+                <div class="form-group">
+                    <MatTextField @bind-Value="@currentclient.Email" Label="Client Email" Icon="email" IconTrailing="true" FullWidth="true"></MatTextField>
+                    <ValidationMessage For="@(() => currentclient.Email)" />
+                </div>
+            </fieldset>
+        </EditForm>
+        <hr />
+        <div style="color:red;">@currentstatus</div>
+    </MatDialogContent>
+    <MatDialogActions>
+        <MatButton Class="btn btn-themecolor" OnClick="@(e => { isCreateorEditDialogOpen = false; })">Cancel</MatButton>
+        <MatButton Class="btn btn-themecolor secondbutton" OnClick="@SaveClient">Save</MatButton>
+    </MatDialogActions>
+</MatDialog>
+
+@code {ClientListView[] clients { get; set; }
+    Client currentclient { get; set; } = new Client();
+    Client[] lstClients { get; set; }
+    bool isCreateorEditDialogOpen = false;
+    string currentstatus = string.Empty;
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            clients = await Http.GetFromJsonAsync<ClientListView[]>("api/subscription/ClientListView");
+            lstClients = await Http.GetFromJsonAsync<Client[]>("api/subscription/GetClients");
+            matToaster.Add(clients.Length.ToString() + " records found", MatToastType.Success, "Operation Successful");
+        }
+        catch (Exception ex)
+        {
+            matToaster.Add(ex.GetBaseException().Message, MatToastType.Danger, "Operation Failed");
+        }
+    }
+    void OpenCreateorEditDialog(int ClientId)
+    {
+        if (ClientId > 0)
+        {
+            //clients = await Http.GetFromJsonAsync<Client[]>("api/subscription/GetClient");
+            currentclient = lstClients.ToList().Where(p => p.Id == ClientId).FirstOrDefault();
+        }
+        else
+        {
+            currentclient = new Client();
+        }
+        isCreateorEditDialogOpen = true;
+    }
+    async Task CreateAzureGroup(int ClientId)
+    {
+        try
+        {
+            currentstatus = "Please Wait Creating Azure Group";
+            this.StateHasChanged();
+
+            AzureClientGroup clg = new AzureClientGroup();
+            clg.ClientId = ClientId;
+            clg.AzureGroupName = currentclient.Name + " Group";
+            clg.IsReportCopied = false;
+            var response1 = await Http.PostAsJsonAsync("api/subscription/CreateAzureGroup", currentclient.Name);
+            //HttpResponseMessage response = Http.PostAsJsonAsync("api/subscription/CreateAzureGroup", currentclient.Name).Result;  // Blocking call!
+            var res1 = response1.Content.ReadAsStringAsync().Result;
+            if (res1 != "Error")
+            {
+                clg.AzureObjectId = response1.Content.ReadAsStringAsync().Result;
+
+                currentstatus = "Azure Group Done\nPlease Wait Creating PowerBI WorkSpace";
+                this.StateHasChanged();
+                var response2 = await Http.PostAsJsonAsync("api/powerbireport/CreatePowerBIWorkSpace", clg);
+                var res = response2.Content.ReadAsStringAsync().Result;
+                if (res != "Error")
+                {
+                    clg.PowerBIWorkSpaceId = res;
+                    currentstatus += "WorkSpace Created\nPlease wait Copying Reports";
+                    var response3 = await Http.PostAsJsonAsync("api/powerbireport/CopyPowerBIReports", res);
+                    var res3 = response3.Content.ReadAsStringAsync().Result;
+                    if (res3 != "Error")
+                    {
+                        clg.IsReportCopied = true;
+                    }
+                }
+            }
+            await Http.PostAsJsonAsync("api/subscription/SaveAzureClientGroup", clg);
+        }
+        catch (Exception ex)
+        {
+            matToaster.Add(ex.GetBaseException().Message, MatToastType.Danger, "Group Creation Failed");
+        }
+    }
+    async Task CreateOnlyAzureGroup(int ClientId, string ClientName)
+    {
+        //await CreateAzureGroup(ClientId);
+        var response1 = await Http.PostAsJsonAsync("api/subscription/CreateAzureGroup", ClientName);
+        AzureClientGroup clg = new AzureClientGroup();
+        clg.ClientId = ClientId;
+        clg.AzureObjectId = response1.Content.ReadAsStringAsync().Result;
+        clg.AzureGroupName = ClientName + " Group";
+        await Http.PostAsJsonAsync("api/subscription/SaveAzureClientGroup", clg);
+        await OnInitializedAsync();
+        this.StateHasChanged();
+    }
+    async Task CreateOnlyPowerBIWorkSpace(int ClientId,string AzureObjectId, string GroupName)
+    {
+        AzureClientGroup clg = new AzureClientGroup();
+        clg.AzureObjectId = AzureObjectId;
+        clg.AzureGroupName = GroupName;
+        var response = await Http.PostAsJsonAsync("api/powerbireport/CreatePowerBIWorkSpace", clg);
+        var res = response.Content.ReadAsStringAsync().Result;
+        if (res != "Error")
+        {
+            clg = await Http.GetJsonAsync<AzureClientGroup>("api/subscription/GetAzureClientGroup?id=" + ClientId);
+            clg.PowerBIWorkSpaceId = res;
+            await Http.PostAsJsonAsync("api/subscription/SaveAzureClientGroup", clg);
+            await CopyPowerBIReports(clg.ClientId,res);
+            return;
+        }
+        await OnInitializedAsync();
+        this.StateHasChanged();
+    }
+    async Task CopyPowerBIReports(int ClientId,string TargetWorkSpaceId)
+    {
+
+        var response = await Http.PostAsJsonAsync("api/powerbireport/CopyPowerBIReports", TargetWorkSpaceId);
+        var res = response.Content.ReadAsStringAsync().Result;
+        if (res != "Error")
+        {
+            AzureClientGroup clg = await Http.GetJsonAsync<AzureClientGroup>("api/subscription/GetAzureClientGroup?id=" + ClientId);
+            clg.IsReportCopied = true;
+            await Http.PostAsJsonAsync("api/subscription/SaveAzureClientGroup", clg);
+        }
+        await OnInitializedAsync();
+        this.StateHasChanged();
+    }
+    async Task SaveClient()
+    {
+        if (string.IsNullOrEmpty(currentclient.Name))
+        {
+            matToaster.Add("Please Enter Client Name", MatToastType.Danger, "Client");
+            return;
+        }
+        if (string.IsNullOrEmpty(currentclient.Email))
+        {
+            matToaster.Add("Please Enter Client Email", MatToastType.Danger, "Client");
+            return;
+        }
+        Client existingclient = null;
+        if (currentclient.Id == 0)
+        {
+            existingclient = lstClients.ToList().Where(p => p.Name == currentclient.Name).FirstOrDefault();
+        }
+        if (existingclient == null)
+        {
+
+            var response = await Http.PostAsJsonAsync("api/subscription/SaveClient", currentclient);
+            //HttpResponseMessage response = Http.PostAsJsonAsync("api/subscription/SaveClient", currentclient).Result;  // Blocking call!
+            //matToaster.Add("Updated", MatToastType.Success, "Operation Successful");
+            currentstatus = "Client is Created";
+            this.StateHasChanged();
+            // var result = Task.Run(async () => await CreateAzureGroup()).Result;
+            await CreateAzureGroup(Convert.ToInt32(response.Content.ReadAsStringAsync().Result));
+
+            await OnInitializedAsync();
+            this.StateHasChanged();
+            isCreateorEditDialogOpen = false;
+        }
+        else
+        {
+            matToaster.Add("Same Client is Exist", MatToastType.Danger, "Error");
+            return;
+        }
+    }
+}

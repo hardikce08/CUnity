@@ -1,0 +1,97 @@
+@page "/fetchdata"
+@using CUnity.Shared
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@inherits MainLayout
+@attribute [Authorize]
+<style>
+    .container-fluid {
+        padding-left: 0px !important;
+        padding-right: 0px !important;
+        padding-top: 0px !important;
+    }
+</style>
+@if (reports == null)
+{
+    <text>Loading...</text> }
+else if (reports.Length == 0)
+{
+    <text>No Records Found.</text> }
+else
+{
+    <div class="w3-sidebar w3-bar-block w3-light-grey w3-card" style="width:130px">
+        @*<p>You are not Authorised to use this page</p>*@
+        @foreach (var report in reports)
+        {
+            <button class="w3-bar-item w3-button tablink @report.ReportName" @onclick="@(() => openReport(@report.ReportName, @report.ReportGuid))">@report.ReportDisplayName</button>
+        }
+
+
+        @*<h5 class="w3-bar-item">Menu</h5>*@
+
+        @*<button class="w3-bar-item w3-button tablink Paris" @onclick="@(() => openReport("Paris"))">Report 2</button>
+            <button class="w3-bar-item w3-button tablink Tokyo" @onclick="@(() => openReport("Tokyo"))">Report 3</button>*@
+    </div>
+
+    <div style="margin-left:130px">
+        @*<div class="w3-padding">Vertical Tab Example (sidebar)</div>*@
+        @foreach (var report in reports)
+        {
+            string LoadingDivId = "loading" + report.ReportName;
+            string ContentDivId = "content" + report.ReportName;
+            string ReportContainerId = "report-container" + report.ReportName;
+            <div id="@report.ReportName" class="w3-container city" style="display:none;padding-left: 5px;padding-top: 5px;padding-right: 5px;">
+                <div class="loadingcontain" id='@LoadingDivId'>
+                    <div class="overlay">
+                        <div class="overlay-content">
+                            <img src="images/ajax-loader.gif" alt="Loading..." />
+                            <p style="color:red;">Please Wait Report is Loading</p>
+                        </div>
+                    </div>
+
+                </div>
+                <div id="@ContentDivId">
+                    <section id="@ReportContainerId" class="embed-container col-lg-12" style="padding-left: 0px;height: 650px; padding-top: 5px;padding-right: 0px;">
+                    </section>
+                </div>
+            </div>
+        }
+
+        <!--<div id="Paris" class="w3-container city" style="display:none;padding-left: 5px;padding-top: 5px;padding-right: 5px;">-->
+        @*<h2>Paris</h2>
+            <p>Paris is the capital of France.</p>
+            <p>The Paris area is one of the largest population centers in Europe, with more than 12 million inhabitants.</p>*@
+        <!--<div class="loadingcontain" id="loadingParis">
+            <div class="overlay">
+                <div class="overlay-content">
+                    <img src="images/ajax-loader.gif" alt="Loading..." />
+                    <p style="color:red;">Please Wait Report is Loading</p>
+                </div>
+            </div>-->
+        <!-- Content goes here -->
+        <!--</div>
+            <div id="contentParis">
+                <section id="report-container-Paris" class="embed-container col-lg-12" style="padding-left: 0px; height: 650px; padding-top: 5px;padding-right: 0px;">
+                </section>
+            </div>
+        </div>-->
+
+    </div>
+}
+@code {
+    private PowerBIReport[] reports { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        //forecasts = await Http.GetFromJsonAsync<WeatherForecast[]>("/api/weatherforecast");
+        reports = await Http.GetFromJsonAsync<PowerBIReport[]>("api/powerbireport/GetPowerBIReports");
+        ParentMenu = "testa";
+    }
+    async Task openReport(string name,string ReportGuid)
+    {
+        string data = name + "$$" + ReportGuid;
+        //await JSRuntime.InvokeAsync<object>("jQueryWidgets.initialize");
+        await JSRuntime.InvokeVoidAsync("Showme", $"{data}");
+
+
+    }
+}

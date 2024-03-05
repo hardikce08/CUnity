@@ -1,0 +1,120 @@
+﻿@page "/developer"
+@inject HttpClient client
+@inject IJSRuntime js
+@inject IMatToaster matToaster
+<h3>Developers</h3>
+@*<small>Add as many developers as you wish.</small>*@
+<div class="form-group">
+    <a class="btn btn-success" href="developer/create"><i class="oi oi-plus"></i> Create New</a>
+</div>
+<br>
+
+@if (developers == null)
+{
+    <text>Loading...</text> }
+else if (developers.Length == 0)
+{
+    <text>No Records Found.</text> }
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Email</th>
+                <th>Experience (Years)</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (Developer dev in developers)
+            {
+                <tr>
+                    <td>@dev.Id</td>
+                    <td>@dev.FirstName</td>
+                    <td>@dev.LastName</td>
+                    <td>@dev.Email</td>
+                    <td>@dev.Experience</td>
+                    <td>
+                        <a class="btn btn-success" href="developer/edit/@dev.Id">Edit</a>
+                        <button class="btn btn-danger" @onclick="@(() => OpenDeleteDeveloperDialog(dev.Id))">Delete</button>
+                    </td>
+                </tr>
+            }
+
+        </tbody>
+    </table>}
+
+
+<MatDialog @bind-IsOpen="@isDeleteDialogOpen" Style="z-index:100">
+    <MatDialogTitle><MatIcon Icon="warning"></MatIcon>Confirm Delete</MatDialogTitle>
+    <MatDialogContent>
+        @string.Format("Are you sure you want to delete {0}?", DeveloperDeletedId)
+    </MatDialogContent>
+    <MatDialogActions>
+        <MatButton OnClick="@(e => { isDeleteDialogOpen = false; })">Cancel</MatButton>
+        <MatButton OnClick="@(() => DoDelete())">Delete</MatButton>
+    </MatDialogActions>
+</MatDialog>
+
+@code { Developer[] developers { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+
+
+        try
+        {
+            developers = await client.GetFromJsonAsync<Developer[]>("api/developer");
+            //var apiResponse = await client.GetNewtonsoftJsonAsync<List<Developer>>("api/developer");
+            //int cnt = 0;
+            //cnt++;
+            matToaster.Add(developers.Length.ToString() + " records found", MatToastType.Success, "Operation Successful");
+            //if (apiResponse.IsSuccessStatusCode)
+            //{
+            //    matToaster.Add(apiResponse.Message, MatToastType.Success, "Operation Successful");
+            //    developers = apiResponse.Result;
+            //}
+            //else
+            //    matToaster.Add(apiResponse.Message, MatToastType.Danger, "Operation Failed");
+        }
+        catch (Exception ex)
+        {
+            matToaster.Add(ex.GetBaseException().Message, MatToastType.Danger, "Operation Failed");
+        }
+    }
+    bool isDeleteDialogOpen = false;
+    int DeveloperDeletedId = 0;
+    void OpenDeleteDeveloperDialog(int DeveloperId)
+    {
+        DeveloperDeletedId = DeveloperId;
+        isDeleteDialogOpen = true;
+    }
+    async Task DoDelete()
+    {
+        isDeleteDialogOpen = false;
+        await Delete(DeveloperDeletedId);
+    }
+    async Task Delete(int developerId)
+    {
+        try
+        {
+            var dev = developers.First(x => x.Id == developerId);
+            await client.DeleteAsync($"api/developer/{developerId}");
+            matToaster.Add("Deleted", MatToastType.Success, "Operation Successful");
+            await Task.Delay(1);
+            matToaster.Dispose();
+            await OnInitializedAsync();
+            //if (await js.InvokeAsync<bool>("confirm", $"Do you want to delete {dev.FirstName}'s ({dev.Id}) Record?"))
+            //{
+            //    await client.DeleteAsync($"api/developer/{developerId}");
+            //    await OnInitializedAsync();
+            //}
+        }
+        catch (Exception ex)
+        {
+            matToaster.Add(ex.GetBaseException().Message, MatToastType.Danger, "Operation Failed");
+        }
+    } }
+

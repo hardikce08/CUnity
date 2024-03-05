@@ -1,0 +1,176 @@
+﻿@page "/admin/generatesubscription"
+@layout AdminLayout
+@attribute [Authorize(Roles = DefaultRoleNames.SuperAdmin)]
+@inject AppState appState
+@inject CustomStateProvider SessionState
+@inject HttpClient Http
+@inject IJSRuntime js
+@inject IMatToaster matToaster
+@inject NavigationManager navigationManager
+
+<MatCard>
+    <EditForm Model="subrequest" OnValidSubmit="@GenerateKey">
+        <DataAnnotationsValidator />
+       
+        <div class="bd-example">
+            <div class="form-group row">
+                <label for="staticEmail" class="col-sm-2 col-form-label">Client Name :</label>
+                <div class="col-sm-10">
+                    @*<label class="col-sm-4 col-form-label">@subrequest.ClientName</label>*@
+                    <MatSelectItem @bind-Value="@subrequest.ClientName"   Items="@Clients" Label="Select Client Name"></MatSelectItem>
+                    <ValidationMessage For="@(() => subrequest.ClientName)" />
+                </div>
+            </div>
+            <div class="form-group row">
+                <label class="col-sm-2 col-form-label">Start Date :</label>
+                <div class="col-sm-10">
+                    <InputDate @bind-Value="@subrequest.StartDate" class="form-control col-sm-4"></InputDate>
+                    <ValidationMessage For="@(() => subrequest.StartDate)" />
+                </div>
+            </div>
+            <div class="form-group row">
+                <label class="col-sm-2 col-form-label">End Date :</label>
+                <div class="col-sm-10">
+                    <InputDate @bind-Value="@subrequest.EndDate" class="form-control col-sm-4" ></InputDate>
+                    <ValidationMessage For="@(() => subrequest.EndDate)" />
+                </div>
+            </div>
+            <div class="form-group row">
+                <label class="col-sm-2 col-form-label">Product :</label>
+                <div class="col-sm-10">
+                    <MatSelectItem @bind-Value="@subrequest.ProductName" Items="@Products" Label="Select Product Name"></MatSelectItem>
+                    <ValidationMessage For="@(() => subrequest.ProductName)" />
+                </div>
+            </div>
+            <div class="form-group row">
+                <label class="col-sm-2 col-form-label"></label>
+                <div class="col-sm-10">
+                    <MatButton class="float-left" Type="submit" Raised="true" tabindex="3">Generate Key</MatButton>
+                </div>
+            </div>
+            <div class="form-group row">
+                <label class="col-sm-12 col-form-label">@GeneratedKey</label>
+            </div>
+        </div>
+        <hr />
+        <!--<fieldset>
+        <div class="form-group">
+            <label class="col-sm-3">  </label>
+            <label class="col-sm-4"> </label>-->
+        @*<MatTextField id="userName" @bind-Value="@subrequest.ClientName" Label="Client Name" FullWidth="true" Disabled="true" Required="true" tabindex="1"></MatTextField>*@
+
+        <!--</div>
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="form-group">
+                    <label class="col-md-3 control-label" for="inputDefault">Start Date:</label>
+                    <div class="col-md-5">
+                        <InputDate @bind-Value="@subrequest.StartDate" class="form-control col-sm-4"></InputDate>-->
+        @*<MatDatePicker @bind-Value="@subrequest.StartDate" Label="Subscription Start Date" FullWidth="true" Minimum="@DateTime.Now.ToLocalTime()"></MatDatePicker>*@
+
+        @*<div class="col-md-7">
+                <input type="button" id="UploadBtn" class="btn btn-danger" value="Validate" />
+                <a href="~/Report/Download/0" class="btn btn-primary">
+                    Download Sample File
+                </a>
+                <i class="fa fa-question-circle" style="font-size:35px;vertical-align:middle;" data-toggle="modal" data-target="#myModal"></i>
+
+            </div>*@
+        <!--</div>
+                </div>
+            </div>
+        </div>-->
+        @*<div class="form-group row">
+                <label for="createdDate" class="col-sm-3">Created Date:</label>
+                <InputDateTime id="createdDate" class="form-control col-sm-8" @bind-Value="subrequest.StartDate"></InputDateTime>
+                <ValidationMessage class="offset-sm-3 col-sm-8" For="(()=>subrequest.StartDate)"></ValidationMessage>
+            </div>*@
+        <!--<div class="form-group">
+        <label class="col-sm-3">End Date:</label>-->
+        @*<MatDatePicker @bind-Value="@subrequest.EndDate" Label="Subscription SEndtart Date" FullWidth="true"></MatDatePicker>*@
+        <!--<InputDate @bind-Value="@subrequest.EndDate" class="form-control col-sm-4"></InputDate>
+        </div>
+        <div class="form-group">
+            <label class="col-sm-3">Product:</label>
+            <MatSelectItem @bind-Value="@subrequest.ProductName" Items="@Products" Label="Select Product Name"></MatSelectItem>-->
+        @*<InputSelect id="productname" @bind-Value="@subrequest.ProductName" class="dropdown">
+                @foreach (var dept in Products)
+                {
+                    <option value="@dept.Id">@dept.Name</option>
+                }
+            </InputSelect>
+            <MatSelect Label="Select Product Name" TValue="string" @bind-Value="@subrequest.ProductName">
+                @foreach (var dept in Products)
+                {
+                    <MatOptionString TValue="int" Value="@dept.Id.ToString()">@dept.Name</MatOptionString>
+                }
+            </MatSelect>*@
+        <!--</div>
+            <div class="form-group">
+                <MatButton class="float-right" @onclick="GenerateKey" Raised="true" tabindex="3">Generate Key</MatButton>
+            </div>
+        </fieldset>-->
+    </EditForm>
+    @if (@GeneratedKey.Length > 0)
+    {
+        <div class="form-group row">
+            <div class="col-sm-9">
+                <MatTextField @bind-Value="@subrequest.EncryptedText" FullWidth="true" Label="Enter Encrypted Key"></MatTextField>
+            </div>
+            <div class="col-sm-3">
+                <MatButton class="float-left" @onclick="DecryptText" Raised="true">Show Original Text</MatButton>
+            </div>
+        </div>
+        <div class="form-group row">
+            <label class="col-sm-12 col-form-label"> @DecryptedText</label>
+        </div>
+    }
+</MatCard>
+
+@code {
+    //private EditContext editContext;
+    Subscribtion subrequest { get; set; } = new Subscribtion();
+    public List<string> Products { get; set; } = new List<string>();
+    public List<string> Clients { get; set; } = new List<string>();
+    public string GeneratedKey { get; set; } = "";
+    public string DecryptedText { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var res = await Http.GetFromJsonAsync<ProductMaster[]>("api/subscription/GetProducts");
+            Products = res.Select(p => p.Name).ToList();
+
+            var clientres = await Http.GetFromJsonAsync<Client[]>("api/subscription/GetClients");
+            //if (clientres.FirstOrDefault() != null)
+            //{
+            //    subrequest.ClientName = clientres.FirstOrDefault().Name;
+            //}
+            Clients= clientres.Select(p => p.Name).ToList();
+            subrequest.StartDate = DateTime.Now;
+            subrequest.EndDate = DateTime.Now.AddDays(15);
+        }
+        catch (Exception ex)
+        {
+            //matToaster.Add(ex.GetBaseException().Message, MatToastType.Danger, "Operation Failed");
+        }
+    }
+
+    private async Task GenerateKey()
+    {
+
+        // var isValid = editContext.Validate();
+        if (true)
+        {
+            //var res = await http.PostAsJsonAsync("api/developer/GenerateKey", subrequest);
+            string text = subrequest.ClientName + "," + subrequest.StartDate.ToString() + "," + subrequest.EndDate.ToString() + "," + subrequest.ProductName;
+            var res = CUnity.Shared.Utils.Encryption.Encrypt(text);
+            GeneratedKey = "Generated Product Key Is : " + res;
+        }
+    }
+    private void DecryptText()
+    {
+        var res = CUnity.Shared.Utils.Encryption.Decrypt(subrequest.EncryptedText);
+        DecryptedText = "Decrypted Text Is : " + res;
+    }
+}

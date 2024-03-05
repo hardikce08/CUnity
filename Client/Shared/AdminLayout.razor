@@ -1,0 +1,207 @@
+﻿@inherits LayoutComponentBase
+@inject NavigationManager navigationManager
+@inject CustomStateProvider authStateProvider
+@inject AppState appState
+@inject HttpClient client
+@attribute [Authorize(Roles = "Administrator,SuperAdmin")]
+
+<MatDrawerContainer Style="width: 100vw; height: 100vh;" Class="@bbDrawerClass">
+    <MatDrawer @bind-Opened="@_navMenuOpened">
+        <header class="drawer-header">
+            <div class="drawer-logo">
+                <img alt="@appState.AppName" class="logo-img" src="/images/logo-dark.svg" title="@appState.AppName">
+                <a class="miniHover" href="/">@appState.AppName</a>
+            </div>
+            @*<UserProfile />*@
+        </header>
+        <AdminNavMenu />
+        @*<DrawerFooter></DrawerFooter>*@
+    </MatDrawer>
+    <MatDrawerContent>
+        <MatAppBarContainer Style="display: flex; flex-direction: column; min-height: 100vh;">
+            <MatAppBar Fixed="true">
+                <MatAppBarRow>
+                    <MatAppBarSection>
+                        <MatAppBarTitle>
+                        </MatAppBarTitle>
+                        <div class="hidden-mdc-down">
+                            <MatTooltip Tooltip="ToggleMenu">
+                                <MatIconButton Class="navToggle" Icon="menu" ToggleIcon="menu" OnClick="@((e) => NavToggle())" RefBack="@context"></MatIconButton>
+                            </MatTooltip>
+                            <MatTooltip Tooltip="Minimise">
+                                <MatIconButton Class="navToggle" Icon="format_indent_decrease" ToggleIcon="format_indent_increase" OnClick="@((e) => NavMinify())" RefBack="@context"></MatIconButton>
+                            </MatTooltip>
+                            @*</li>
+                                <li>
+                                    <MatTooltip Tooltip="Lock Navigation">
+                                        <MatIconButton Class="navToggle" Icon="lock" ToggleIcon="radio_button_unchecked" OnClick="@((e) => NavLock())" RefBack="@context"></MatIconButton>
+                                    </MatTooltip>
+                                    </li>*@
+                        </div>
+                    </MatAppBarSection>
+                    <MatAppBarSection Align="@MatAppBarSectionAlign.End">
+                        @*<MatTooltip Tooltip="Admin">
+                                <MatIconButton Link="/admin" RefBack="@context"><i class="fa fa-gear" aria-hidden="true"></i></MatIconButton>
+                            </MatTooltip>*@
+                        <AdminTopBarRightSection></AdminTopBarRightSection>
+                    </MatAppBarSection>
+                </MatAppBarRow>
+            </MatAppBar>
+            <MatAppBarContent Style="flex: 1; display: flex; flex-direction: column;">
+                @*<Breadcrumbs RootLinkTitle="@appState.BreadCrumbHome"></Breadcrumbs>*@
+                <section class="container-fluid" style="flex: 1;">
+                    @Body
+                </section>
+                @*<Footer></Footer>*@
+            </MatAppBarContent>
+        </MatAppBarContainer>
+    </MatDrawerContent>
+</MatDrawerContainer>
+
+@code { bool _navMenuOpened = true;
+    bool _navMinified = false;
+    public string bbDrawerClass = string.Empty;
+
+    public static bool IsSuperAdmin = false;
+    //public static int LoggedinUserId { get; set; }
+    //public static List<UserSubscription> ActiveSubscriptions { get; set; } = new List<UserSubscription>();
+    [CascadingParameter]
+    Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var user = (await authenticationStateTask).User;
+
+            if (user.Identity.IsAuthenticated)
+            {
+                //var profile = await appstate.getuserprofile();
+                //_navmenuopened = profile.isnavopen;
+                //_navminified = profile.isnavminified;
+                //matToaster.Add("Logged in User is null", MatToastType.Success, "Operation Successful");
+                var CurrentUser = await authStateProvider.GetCurrentUser();
+                //IsLoggedIn = true;
+                IsSuperAdmin = CurrentUser.IsSuperAdmin;
+                //LoggedinUserId = (int)LoggedinUser.UserId;
+                //var a = await client.GetFromJsonAsync<UserSubscription[]>("api/usersubscription/GetMySubscription?id=" + LoggedinUser.UserId);
+                //ActiveSubscriptions = a.ToList();
+                //var HasopticsSub = ActiveSubscriptions.Where(p => p.ProductName == ProductNames.Optics.ToString()).FirstOrDefault();
+                //if (HasopticsSub != null)
+                //{
+                //    OpticsAccess = true;
+                //}
+                //var HasHouseHoldingSub = ActiveSubscriptions.Where(p => p.ProductName == ProductNames.HouseHolding.ToString()).FirstOrDefault();
+                //if (HasHouseHoldingSub != null)
+                //{
+                //    HouseHoldinAccess = true;
+                //}
+                StateHasChanged();
+                //var r = await authStateProvider.GetCurrentUser();
+                Console.WriteLine("IS Authentiation Admin LAyout State Changed");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Admin LAyour Error");
+        }
+    }
+
+    void NavToggle()
+    {
+        _navMenuOpened = !_navMenuOpened;
+
+        if (_navMenuOpened)
+        {
+            bbDrawerClass = "full";
+        }
+        else
+        {
+            bbDrawerClass = "closed";
+        }
+
+        StateHasChanged();
+    }
+
+    void NavLock()
+    {
+        //Todo Lock Nav
+    }
+
+    void NavMinify()
+    {
+        _navMinified = !_navMinified;
+
+        if (!_navMenuOpened)
+        {
+            _navMinified = true;
+        }
+
+        if (_navMinified)
+        {
+            bbDrawerClass = "mini";
+            _navMenuOpened = true;
+        }
+        else if (_navMenuOpened)
+        {
+            bbDrawerClass = "full";
+        }
+
+        _navMenuOpened = true;
+
+        StateHasChanged();
+    }
+
+}
+
+
+
+
+@*
+
+        <!--@inherits LayoutComponentBase
+        @inject NavigationManager navigationManager
+        @inject CustomStateProvider authStateProvider-->
+            <AuthorizeView>
+    <!--<div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <div class="main">
+        <div class="top-row">
+            <button type="button" class="btn btn-link ml-md-auto" style="visibility:@IsLogoutVisible;" @onclick="@LogoutClick">Logout</button>
+            <button type="button" class="btn btn-link ml-md-auto" style="visibility:@IsLoginVisible;" @onclick="@LoginClick">Login</button>
+        </div>
+        <div class="content px-4">
+            @Body
+        </div>
+    </div>-->
+     </AuthorizeView>
+
+    <!--@functions{ [CascadingParameter]
+        Task<AuthenticationState> AuthenticationState { get; set; }
+        string IsLogoutVisible = "block";
+        string IsLoginVisible = "block";
+        protected override async Task OnParametersSetAsync()
+        {
+            if (!(await AuthenticationState).User.Identity.IsAuthenticated)
+            {
+                //navigationManager.NavigateTo("/login");
+                IsLogoutVisible = "hidden";
+            }
+            else
+            {
+                IsLoginVisible = "hidden";
+
+            }
+        }
+        async Task LogoutClick()
+        {
+            await authStateProvider.Logout();
+            navigationManager.NavigateTo("/login");
+        }
+        async Task LoginClick()
+        {
+            navigationManager.NavigateTo("/login");
+        } }-->
+*@

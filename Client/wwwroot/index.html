@@ -1,0 +1,193 @@
+﻿
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>CUnity</title>
+    <base href="/" />
+    <link href="manifest.json" rel="manifest" />
+    <link rel="icon" href="https://cu-rise.com/wp-content/uploads/2019/10/favicon.ico" sizes="32x32" />
+    <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" />
+    <link href="fonts/roboto/roboto.css" rel="stylesheet" />
+    <link href="_content/MatBlazor/dist/matBlazor.css" rel="stylesheet" />
+    <link href="css/site.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <style type="text/css">
+        .bd-example {
+            padding: 1.5rem;
+            margin-right: 0;
+            margin-left: 0;
+            border-width: .4rem;
+        }
+
+        .bd-example {
+            position: relative;
+            border: solid #f8f9fa;
+            border-width: .4rem 0 0;
+        }
+
+        #loading-bar .bar {
+            background: #1e1e1e !important;
+        }
+
+
+        .bg-info, .bg-info > a {
+            color: #fff !important;
+        }
+
+        .bg-info {
+            background-color: #17a2b8 !important;
+        }
+        .bg-success {
+            background-color: #28a745 !important;
+        }
+        .bg-warning {
+            background-color: #ffc107 !important;
+        }
+        .bg-danger {
+            background-color: #dc3545 !important;
+        }
+        .small-box {
+            border-radius: .25rem;
+            box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+            display: block;
+            margin-bottom: 20px;
+            position: relative;
+        }
+            .small-box > .inner {
+                padding: 10px;
+            }
+            .small-box h3, .small-box p {
+                z-index: 5;
+            }
+
+            .small-box h3 {
+                font-size: 2.2rem;
+                font-weight: 700;
+                margin: 0 0 10px;
+                padding: 0;
+                white-space: nowrap;
+            }
+            .small-box h3, .small-box p {
+                z-index: 5;
+            }
+
+            .small-box p {
+                font-size: 1rem;
+            }
+
+        p {
+            margin-top: 0;
+            margin-bottom: 1rem;
+        }
+
+       /* .loadingcontain {
+            position: relative;
+        }*/
+
+        .overlay {
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 2;
+            background-color: rgba(255,255,255,0.8);
+        }
+
+        .overlay-content {
+            position: absolute;
+            transform: translateY(-50%);
+            -webkit-transform: translateY(-50%);
+            -ms-transform: translateY(-50%);
+            top: 50%;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: #555;
+        }
+    </style>
+</head>
+
+<body>
+    <app>
+        <div class="triangle-container">
+            <div class="triangles">
+            </div>
+        </div>
+        <div class="loading-container" id="loading">
+            <img src="images/logo.svg" alt="Loading" title="Loading CUnity" /><br />
+            Loading CUnity ...
+        </div>
+    </app>
+
+
+
+    <div id="blazor-error-ui">
+        <i class="material-icons">error</i>
+        <environment include="Staging,Production">
+            An error has occurred. This application may no longer respond until reloaded.
+        </environment>
+        <environment include="Development">
+            An unhandled exception has occurred. See browser dev tools for details.
+        </environment>
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script src="_content/MatBlazor/dist/matBlazor.js"></script>
+    <!-- load remaining JS after blazor boot loads -->
+    <script src="js/interop.js"></script>
+    <!-- https://docs.microsoft.com/en-us/aspnet/core/blazor/progressive-web-app -->
+    <script>navigator.serviceWorker.register('service-worker.js');</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
+
+    <!-- This is the glue between Blazor and Chart.js -->
+    <script src="_content/ChartJs.Blazor.Fork/ChartJsBlazorInterop.js"></script>
+    <script src="https://code.jquery.com/jquery-1.12.3.js" integrity="sha256-1XMpEtA4eKXNNpXcJ1pmMPs8JV+nwLdEqwiJeCQEkyc=" crossorigin="anonymous"></script>
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+            $('#loading')
+                .hide()
+                .ajaxStart(function () {
+                    $(this).show();
+                })
+                .ajaxStop(function () {
+                    $(this).hide();
+                });
+        });
+
+        function Showme(data) {
+            //alert(data);
+            var res = data.split("$$");
+            //alert(res.length);
+            var reportname = res[0];
+            var reportid = res[1];
+            $(".city").css("display", "none");
+            $(".tablink").css("background-color", "transparent");
+            $("#" + reportname).css("display", "block");
+            $("." + reportname).css("background-color", "#ccc");
+            $("#loading" + reportname).show();
+            $("#content" + reportname).hide();
+            //console.log("test function");
+            updateReport(reportname, reportid);
+        }
+
+        function OpenSubMenu(val) {
+            //alert(val);
+            var id = $("a.mdc-list-item--selected").parentsUntil(".mdc-expansion-panel--selected");
+            id.addClass('mat-expansion-panel--expanded');
+            //alert(id);
+        }
+    </script>
+    <script src="js/powerbi.min.js"></script>
+    <script src="js/powerbifunctions.js"></script>
+</body>
+
+</html>

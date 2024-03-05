@@ -1,0 +1,139 @@
+﻿@page "/admin/clients/AssignUser/{GroupId}"
+@layout AdminLayout
+@attribute [Authorize(Roles = DefaultRoleNames.SuperAdmin)]
+@inject AppState appState
+@inject CustomStateProvider SessionState
+@inject HttpClient Http
+@inject IMatToaster matToaster
+@inject NavigationManager navigationManager
+
+<h3>Assigned Users   <button class="btn btn-danger" @onclick="@(() => OpenCreateUserDialog(GroupId))">Add New</button></h3>
+
+@if (lstuser == null)
+{
+    <text>Loading...</text> }
+else if (lstuser.Count == 0)
+{
+    <text>No Records Found.</text> }
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+
+                <th>First Name</th>
+                <th>Display Name</th>
+                <th>Email</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (AzureUserList dev in lstuser)
+            {
+                <tr>
+                    <td>@dev.GivenName</td>
+                    <td>@dev.DisplayName</td>
+                    <td>@dev.FirstName</td>
+                    <td>
+                        <button class="btn btn-danger" @onclick="@(() => OpenDeleteDeveloperDialog(dev.AzureGroupId,dev.AzureObjectId))">Delete</button>
+
+                      
+                    </td>
+                </tr>
+            }
+
+        </tbody>
+    </table>}
+
+<MatDialog @bind-IsOpen="@isCreateorEditDialogOpen">
+    <MatDialogTitle>New User</MatDialogTitle>
+    <MatDialogContent>
+        <EditForm Model="@currentclient">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <fieldset>
+                <div class="form-group">
+                    <MatTextField @bind-Value="@currentclient.DisplayName" Label="Display Name" Icon="description" IconTrailing="true" FullWidth="true"></MatTextField>
+                    @*<ValidationMessage For="@(() => currentclient.Name)" />*@
+                </div>
+                @*<div class="form-group">
+                    <MatTextField @bind-Value="@currentclient.NickName" Label="Nick Name" Icon="description" IconTrailing="true" FullWidth="true"></MatTextField>
+                </div>*@
+                <div class="form-group">
+                    <MatTextField @bind-Value="@currentclient.EmailAddress" Label="Email" Icon="email" IconTrailing="true" FullWidth="true"></MatTextField>
+                </div>
+                @*<div class="form-group">
+                    <MatTextField @bind-Value="@currentclient.Password" Type="password" Label="Password" Icon="password" IconTrailing="true" FullWidth="true"></MatTextField>
+                </div>*@
+            </fieldset>
+        </EditForm>
+        <hr />
+        <div style="color:red;">@currentstatus</div>
+    </MatDialogContent>
+    <MatDialogActions>
+        <MatButton Class="btn btn-themecolor" OnClick="@(e => { isCreateorEditDialogOpen = false; })">Cancel</MatButton>
+        <MatButton Class="btn btn-themecolor secondbutton" OnClick="@InsertNewAzureUser">Save</MatButton>
+    </MatDialogActions>
+</MatDialog>
+<MatDialog @bind-IsOpen="@isDeleteDialogOpen" Style="z-index:100">
+    <MatDialogTitle><MatIcon Icon="warning"></MatIcon>Confirm Delete</MatDialogTitle>
+    <MatDialogContent>
+        @string.Format("Are you sure you want to delete this user from Azure Group ?")
+    </MatDialogContent>
+    <MatDialogActions>
+        <MatButton OnClick="@(e => { isDeleteDialogOpen = false; })">Cancel</MatButton>
+        <MatButton OnClick="@(() => DoDelete())">Delete</MatButton>
+    </MatDialogActions>
+</MatDialog>
+@code {
+    [Parameter] public string GroupId { get; set; }
+    List<AzureUserList> lstuser { get; set; }
+    AzureUserList currentclient { get; set; } = new AzureUserList();
+    bool isDeleteDialogOpen = false;
+    bool isCreateorEditDialogOpen = false;
+    string currentstatus = "";
+    public string AdGroupId { get; set; }
+    public string UserId { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            lstuser = await Http.GetFromJsonAsync<List<AzureUserList>>($"api/Azure/GetAzureGroupUsers?GroupId=" + GroupId);
+
+        }
+        catch (Exception ex)
+        {
+            matToaster.Add(ex.GetBaseException().Message, MatToastType.Danger, "Operation Failed");
+        }
+    }
+    void OpenDeleteDeveloperDialog(string AzureGroupId, string UserObjectId)
+    {
+        AdGroupId = AzureGroupId;
+        UserId = UserObjectId;
+        isDeleteDialogOpen = true;
+    }
+    void OpenCreateUserDialog(string AzureGroupId)
+    {
+        isCreateorEditDialogOpen = true;
+        currentclient = new AzureUserList();
+        currentclient.AzureGroupId = AzureGroupId;
+    }
+    async Task DoDelete()
+    {
+
+        AzureUserList obj = new AzureUserList();
+        obj.AzureGroupId = AdGroupId;
+        obj.AzureObjectId = UserId;
+        await Http.PostAsJsonAsync("api/Azure/RemoveUserFromAzureGroup", obj);
+        await OnInitializedAsync();
+        StateHasChanged();
+        isDeleteDialogOpen = false;
+    }
+    async Task InsertNewAzureUser()
+    {
+        await Http.PostAsJsonAsync("api/Azure/AddGuestUsertoAzureGroup", currentclient);
+        await OnInitializedAsync();
+        StateHasChanged();
+        isCreateorEditDialogOpen = false;
+    }
+}

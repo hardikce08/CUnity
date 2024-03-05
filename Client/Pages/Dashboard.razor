@@ -1,0 +1,262 @@
+﻿@page "/dashboard"
+@attribute [Authorize]
+@inject AppState appState
+@using ChartJs.Blazor.PieChart
+@using ChartJs.Blazor.Util
+@using static CUnity.Shared.Utils.ChartUtils
+@using ChartJs.Blazor.LineChart
+@using ChartJs.Blazor.BarChart
+@using System.Drawing
+
+<div class="col-md-12 row">
+    <div class="col-md-6"><Chart Config="_config"></Chart></div>
+    <div class="col-md-6"><Chart Config="_lineConfig" @ref="_chart"></Chart></div>
+</div>
+<div class="col-md-12 row">
+    <div class="col-md-6"><Chart Config="_barconfig"></Chart></div>
+    <div class="col-md-6 row" style="padding-top:50px;">
+        <div class="col-md-6">
+            <div class="small-box bg-info">
+                <div class="inner">
+                    <h3>150</h3>
+                    <p>New Orders</p>
+                </div>
+            </div>
+            <div class="small-box bg-success">
+                <div class="inner">
+                    <h3>150</h3>
+                    <p>New Orders</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="small-box bg-danger">
+                <div class="inner">
+                    <h3>150</h3>
+                    <p>New Orders</p>
+                </div>
+            </div>
+            <div class="small-box bg-warning">
+                <div class="inner">
+                    <h3>150</h3>
+                    <p>New Orders</p>
+                </div>
+            </div>
+        </div>
+        @*<div class="col-md-6">
+            <div class="small-box bg-info">
+                <div class="inner">
+                    <h3>150</h3>
+                    <p>New Orders</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="small-box bg-info">
+                <div class="inner">
+                    <h3>150</h3>
+                    <p>New Orders</p>
+                </div>
+            </div>
+        </div>*@
+    </div>
+</div>
+<div class="col-md-12 row">
+    <div class="col-md-6">
+        <table class="table table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Email</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (int i = 0; i < 5; i++)
+                {
+                    <tr>
+                        <td>@string.Format("FName {0}",i.ToString())</td>
+                        <td>@string.Format("LName {0}", i.ToString())</td>
+                        <td>@string.Format("Email {0}", i.ToString())</td>
+                    </tr>
+                }
+
+            </tbody>
+        </table>
+    </div>
+    <div class="col-md-6">
+
+        <table class="table table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Email</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (int i = 0; i < 5; i++)
+                {
+                <tr>
+                    <td>@string.Format("FName {0}", i.ToString())</td>
+                    <td>@string.Format("LName {0}", i.ToString())</td>
+                    <td>@string.Format("Email {0}", i.ToString())</td>
+                </tr>
+                }
+
+            </tbody>
+        </table>
+
+    </div>
+</div>
+@*<MatButton class="float-right" OnClick="@LoadLineChart" Raised="true">Load Line Chart</MatButton>*@
+<hr />
+
+
+
+@code {
+    private const int InitalCount = 7;
+    public PieConfig _config;
+    public LineConfig _lineConfig;
+    private BarConfig _barconfig;
+    private Chart _chart;
+
+    protected override void OnInitialized()
+    {
+        _config = new PieConfig
+        {
+            Options = new PieOptions
+            {
+                Responsive = true,
+                Title = new ChartJs.Blazor.Common.OptionsTitle
+                {
+                    Display = true,
+                    Text = "ChartJs.Blazor Pie Chart"
+                }
+            }
+        };
+
+        foreach (string color in new[] { "Red", "Yellow", "Green", "Blue" })
+        {
+            _config.Data.Labels.Add(color);
+        }
+
+        PieDataset<int> dataset = new PieDataset<int>(new[] { 6, 5, 3, 7 })
+        {
+            BackgroundColor = new[]
+            {
+            ColorUtil.ColorHexString(255, 99, 132), // Slice 1 aka "Red"
+            ColorUtil.ColorHexString(255, 205, 86), // Slice 2 aka "Yellow"
+            ColorUtil.ColorHexString(75, 192, 192), // Slice 3 aka "Green"
+            ColorUtil.ColorHexString(54, 162, 235), // Slice 4 aka "Blue"
+        }
+        };
+
+        _config.Data.Datasets.Add(dataset);
+
+        //Load Line Chart
+        LoadLineChart();
+
+        // Load Bar Chart
+        LoadBarChart();
+    }
+    public void LoadLineChart()
+    {
+        _lineConfig = new LineConfig
+        {
+            Options = new LineOptions
+            {
+                Responsive = true,
+                Title = new OptionsTitle
+                {
+                    Display = true,
+                    Text = "ChartJs.Blazor Line Chart"
+                },
+                Tooltips = new Tooltips
+                {
+                    Mode = InteractionMode.Nearest,
+                    Intersect = true
+                },
+                Hover = new Hover
+                {
+                    Mode = InteractionMode.Nearest,
+                    Intersect = true
+                },
+                Scales = new Scales
+                {
+                    XAxes = new List<CartesianAxis>
+{
+                        new CategoryAxis
+                        {
+                            ScaleLabel = new ScaleLabel
+                            {
+                                LabelString = "Month"
+                            }
+                        }
+                    },
+                    YAxes = new List<CartesianAxis>
+{
+                        new LinearCartesianAxis
+                        {
+                            ScaleLabel = new ScaleLabel
+                            {
+                                LabelString = "Value"
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        IDataset<int> dataset1 = new LineDataset<int>(RandomScalingFactor(InitalCount))
+        {
+            Label = "My first dataset",
+            BackgroundColor = ColorUtil.FromDrawingColor(ChartColors.Red),
+            BorderColor = ColorUtil.FromDrawingColor(ChartColors.Red),
+            Fill = FillingMode.Disabled
+        };
+
+        _lineConfig.Data.Labels.AddRange(Months.Take(InitalCount));
+        _lineConfig.Data.Datasets.Add(dataset1);
+    }
+    public void LoadBarChart()
+    {
+        _barconfig = new BarConfig
+        {
+            Options = new BarOptions
+            {
+                Responsive = true,
+                Legend = new Legend
+                {
+                    Position = Position.Top
+                },
+                Title = new OptionsTitle
+                {
+                    Display = true,
+                    Text = "ChartJs.Blazor Bar Chart"
+                }
+            }
+        };
+
+        IDataset<int> dataset1 = new BarDataset<int>(RandomScalingFactor(InitalCount))
+        {
+            Label = "My first dataset",
+            BackgroundColor = ColorUtil.FromDrawingColor(Color.FromArgb(128, ChartColors.Red)),
+            BorderColor = ColorUtil.FromDrawingColor(ChartColors.Red),
+            BorderWidth = 1
+        };
+
+        IDataset<int> dataset2 = new BarDataset<int>(RandomScalingFactor(InitalCount))
+        {
+            Label = "My second dataset",
+            BackgroundColor = ColorUtil.FromDrawingColor(Color.FromArgb(128, ChartColors.Blue)),
+            BorderColor = ColorUtil.FromDrawingColor(ChartColors.Blue),
+            BorderWidth = 1
+        };
+
+        _barconfig.Data.Labels.AddRange(Months.Take(InitalCount));
+        _barconfig.Data.Datasets.Add(dataset1);
+        _barconfig.Data.Datasets.Add(dataset2);
+    }
+}
+

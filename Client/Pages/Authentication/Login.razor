@@ -1,0 +1,85 @@
+﻿@page "/login"
+@layout LoginLayout
+@inject NavigationManager navigationManager
+@inject CustomStateProvider authStateProvider
+@inject IMatToaster Toaster
+
+<MatCard>
+    <div class="hidden-mdc-down">
+        <MatIconButton Icon="home" Class="float-left" Link="/" />
+    </div>
+    <div class="logo">
+        <a href="/" title="Home">
+            <img src="/images/logo.svg" style="width:100px;" title="Home" alt="" /><br />Cunity
+        </a>
+        <br />
+        <h4>Log in</h4>
+    </div>
+    <EditForm Model="loginRequest" OnValidSubmit="@OnSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <fieldset>
+            <div class="form-group">
+                <MatTextField id="userName" @bind-Value="@loginRequest.UserName" Label="User Name" Icon="person" IconTrailing="true" FullWidth="true" Required="true" tabindex="1"></MatTextField>
+            </div>
+            <div class="form-group">
+                <MatTextField @bind-Value="@loginRequest.Password" Label="Password" Icon="lock_outline" IconTrailing="true" FullWidth="true" Required="true" Type="password" tabindex="2"></MatTextField>
+            </div>
+            <div class="form-group">
+                @*<MatButton class="float-right btn btn-themecolor" Type="submit" tabindex="3">Login</MatButton>*@
+                <button type="submit" class="float-right btn btn-themecolor" value="Login">Login</button>
+                <MatCheckbox @bind-Value="@loginRequest.RememberMe" class="filled-in chk-col-blue">Keep me logged in</MatCheckbox>
+            </div>
+        </fieldset>
+    </EditForm>
+    <hr />
+    @*<div>
+            <MatButton class="float-left" OnClick="@Register" Raised="true">@L["Sign up"]</MatButton>
+        </div>*@
+</MatCard>
+
+
+@*<EditForm class="form-signin" OnValidSubmit="OnSubmit" Model="loginRequest">
+        <DataAnnotationsValidator />
+
+        <label for="inputUsername" class="sr-only">User Name</label>
+        <InputText id="inputUsername" class="form-control" @bind-Value="loginRequest.UserName" autofocus placeholder="Username" />
+        <ValidationMessage For="@(() => loginRequest.UserName)" />
+
+        <label for="inputPassword" class="sr-only">Password</label>
+        <InputText type="password" id="inputPassword" class="form-control" placeholder="Password" @bind-Value="loginRequest.Password" />
+        <ValidationMessage For="@(() => loginRequest.Password)" />
+
+        <div class="form-check m-3">
+            <InputCheckbox id="inputRememberMe" class="form-check-input" @bind-Value="@loginRequest.RememberMe" />
+            <label class="form-check-label" for="inputRememberMe">Remember Me</label>
+        </div>
+
+        <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
+
+        <label class="text-danger">@error</label>
+
+        <NavLink href="register">
+            <h6 class="font-weight-normal text-center">Create account</h6>
+        </NavLink>
+    </EditForm>*@
+
+@code{ LoginRequest loginRequest { get; set; } = new LoginRequest();
+    bool RedirectInProgress = true;
+    string error { get; set; }
+
+    async Task OnSubmit()
+    {
+        error = null;
+        try
+        {
+            await authStateProvider.Login(loginRequest);
+            //Toaster.Add("Login Successfull", MatToastType.Success, "");
+            navigationManager.NavigateTo("");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            Toaster.Add("Login Error:" + error, MatToastType.Danger, "Error");
+        }
+    } }

@@ -1,0 +1,90 @@
+﻿@page "/register_front"
+@layout LoginLayout
+@inject NavigationManager navigationManager
+@inject CustomStateProvider authStateProvider
+@inject IMatToaster matToaster
+@inject IAuthService api
+        <MatCard>
+            <div class="hidden-mdc-down">
+                <MatIconButton Icon="home" Class="float-left" Link="/" />
+            </div>
+            <div class="logo">
+                <img src="images/logo.svg" style="width:100px;" /><br />CUnity
+                <br />
+                <h4>Registration</h4>
+            </div>
+            <EditForm Model="@registerViewModel" OnValidSubmit="@OnSubmit">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+                <fieldset>
+                    <div class="form-group">
+                        <MatTextField @bind-Value="@registerViewModel.FirstName" Label="First Name" Icon="mail_outline" IconTrailing="true" FullWidth="true" Required="true"></MatTextField>
+                    </div>
+                    <div class="form-group">
+                        <MatTextField @bind-Value="@registerViewModel.LastName" Label="Last Name" Icon="mail_outline" IconTrailing="true" FullWidth="true" Required="true"></MatTextField>
+                    </div>
+                    <div class="form-group">
+                        <MatTextField @bind-Value="@registerViewModel.UserName" Label="UserName" Icon="person" IconTrailing="true" FullWidth="true" Required="true"></MatTextField>
+                        <ValidationMessage For="@(() => registerViewModel.UserName)" />
+
+                    </div>
+                    <div class="form-group">
+                        <MatTextField @bind-Value="@registerViewModel.Email" Label="Email" Icon="mail_outline" IconTrailing="true" FullWidth="true" Required="true"></MatTextField>
+                    </div>
+                    <div class="form-group">
+                        <MatTextField @bind-Value="@registerViewModel.Password" Label="Password" Icon="lock_outline" IconTrailing="true" FullWidth="true" Required="true" Type="password"></MatTextField>
+                    </div>
+                    <div class="form-group">
+                        <MatTextField @bind-Value="@registerViewModel.PasswordConfirm" Label="Password Confirmation" Icon="lock_outline" IconTrailing="true" FullWidth="true" Required="true" Type="password"></MatTextField>
+                    </div>
+                    <div class="form-group d-flex justify-content-end">
+                        <MatButton Type="submit" Raised="true">Register</MatButton>
+                    </div>
+                    <hr />
+                    <NavLink href="login">
+                        <h6 class="font-weight-normal text-center">Already have an account? Click here to login</h6>
+                    </NavLink>
+                </fieldset>
+            </EditForm>
+        </MatCard>
+
+        @*<EditForm class="form-signin" OnValidSubmit="OnSubmit" Model="registerRequest">
+                <DataAnnotationsValidator />
+
+                <label for="inputUsername" class="sr-only">User Name</label>
+                <InputText id="inputUsername" class="form-control" placeholder="Username" autofocus @bind-Value="@registerRequest.UserName" />
+                <ValidationMessage For="@(() => registerRequest.UserName)" />
+
+                <label for="inputPassword" class="sr-only">Password</label>
+                <InputText type="password" id="inputPassword" class="form-control" placeholder="Password" @bind-Value="@registerRequest.Password" />
+                <ValidationMessage For="@(() => registerRequest.Password)" />
+
+                <label for="inputPasswordConfirm" class="sr-only">Password Confirmation</label>
+                <InputText type="password" id="inputPasswordConfirm" class="form-control" placeholder="Password Confirmation" @bind-Value="@registerRequest.PasswordConfirm" />
+                <ValidationMessage For="@(() => registerRequest.PasswordConfirm)" />
+
+                <button class="btn btn-lg btn-primary btn-block" type="submit">Create account</button>
+
+                <label class="text-danger">@error</label>
+                <NavLink href="login">
+                    <h6 class="font-weight-normal text-center">Already have an account? Click here to login</h6>
+                </NavLink>
+            </EditForm>*@
+
+        @functions{ RegisterRequest registerViewModel { get; set; } = new RegisterRequest();
+
+            async Task OnSubmit()
+            {
+                try
+                {
+                    registerViewModel.RoleName = "Administrator";
+                    await authStateProvider.Register(registerViewModel);
+                    // var roleresult = _userManager.AddToRolesAsync(currentUser, "Administrator");
+                    matToaster.Add("Registration Success", MatToastType.Success, "");
+                    navigationManager.NavigateTo("");
+                }
+                catch (Exception ex)
+                {
+                    matToaster.Add(ex.Message, MatToastType.Danger, "Registration Faild");
+                }
+            } }

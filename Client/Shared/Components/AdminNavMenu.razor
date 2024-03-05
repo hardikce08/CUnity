@@ -1,0 +1,122 @@
+﻿@inject NavigationManager navigationManager
+@inject CustomStateProvider SessionState
+<MatNavMenu Multi="true" Class="app-sidebar">
+
+    <MatNavItem Href="@navigationManager.ToAbsoluteUri(" ").AbsoluteUri" NavLinkMatch="NavLinkMatch.All">
+        <MatIcon>home</MatIcon> <span class="miniHover">Frontend</span>
+    </MatNavItem>
+    @if (IsSuperAdmin)
+    {
+        <MatNavItem Href="@navigationManager.ToAbsoluteUri("admin/clients").AbsoluteUri">
+            <MatIcon>account_circle</MatIcon> <span class="miniHover">Clients</span>
+        </MatNavItem>
+    }
+    <MatNavItem Href="@navigationManager.ToAbsoluteUri("admin/users").AbsoluteUri">
+        <MatIcon>people</MatIcon> <span class="miniHover">Users</span>
+    </MatNavItem>
+    @if (!IsSuperAdmin)
+    {
+        <MatNavItem Href="@navigationManager.ToAbsoluteUri("admin/mysubscription").AbsoluteUri">
+            <MatIcon>subscriptions</MatIcon> <span class="miniHover">My Active Subscription</span>
+        </MatNavItem>
+    }
+    @if (IsSuperAdmin)
+    {
+        <MatNavItem Href="@navigationManager.ToAbsoluteUri("admin/generatesubscription").AbsoluteUri">
+            <MatIcon>account_circle</MatIcon> <span class="miniHover">Create Subscription Key</span>
+        </MatNavItem>
+    }
+    @if (IsSuperAdmin)
+    {
+        <MatNavItem Href="@navigationManager.ToAbsoluteUri("admin/allsubscription").AbsoluteUri">
+            <MatIcon>subscriptions</MatIcon> <span class="miniHover">View All Subscription</span>
+        </MatNavItem>
+    }
+    @*<MatNavSubMenu>
+            <MatNavSubMenuHeader>
+                <MatNavItem AllowSelection="false">
+                    <MatIcon>stars</MatIcon><span class="miniHover">Features</span>
+                </MatNavItem>
+            </MatNavSubMenuHeader>
+            <MatNavSubMenuList>
+                <MatNavItem Href="@navigationManager.ToAbsoluteUri("drag_and_drop").AbsoluteUri">
+                    <MatIcon>touch_app</MatIcon> <span class="miniHover">@L["AppNavDragAndDrop"]</span>
+                </MatNavItem>
+            </MatNavSubMenuList>
+        </MatNavSubMenu>*@
+
+    @*<MatNavItem Href="@navigationManager.ToAbsoluteUri("dashboard").AbsoluteUri" Disabled="@(!IsLoggedIn)">
+            <MatIcon>bar_chart</MatIcon> <span class="miniHover">Dashboard</span>
+        </MatNavItem>*@
+    @*<MatNavItem Href="@navigationManager.ToAbsoluteUri("chartdemo").AbsoluteUri" Disabled="@(!IsLoggedIn)">
+            <MatIcon>bar_chart</MatIcon> <span class="miniHover">Custom Chart</span>
+        </MatNavItem>*@
+    @*<MatNavItem Href="@navigationManager.ToAbsoluteUri("mysubscription").AbsoluteUri" Disabled="@(!IsOpticsAccess)">
+            <MatIcon>bar_chart</MatIcon> <span class="miniHover">Optics</span>
+        </MatNavItem>
+        <MatNavItem Href="@navigationManager.ToAbsoluteUri("mysubscription").AbsoluteUri" Disabled="@(!IsHouseHoldinAccess)">
+            <MatIcon>bar_chart</MatIcon> <span class="miniHover">HouseHolding</span>
+        </MatNavItem>*@
+    @*<MatNavSubMenu>
+            <MatNavSubMenuHeader>
+                <MatNavItem AllowSelection="false" Disabled="@(!IsLoggedIn)">
+                    <MatIcon>mail_outline</MatIcon>
+                    <span class="miniHover">Client</span>
+                </MatNavItem>
+            </MatNavSubMenuHeader>
+            <MatNavSubMenuList>
+                <MatNavItem Href="@navigationManager.ToAbsoluteUri("mysubscription").AbsoluteUri" Disabled="@(!IsLoggedIn)">
+                    <MatIcon>bar_chart</MatIcon> <span class="miniHover">Active Subscription</span>
+                </MatNavItem>
+            </MatNavSubMenuList>
+        </MatNavSubMenu>*@
+</MatNavMenu>
+@*<MatNavItem Href="@navigationManager.ToAbsoluteUri("forum").AbsoluteUri" Disabled="@(!IsLoggedIn)">
+        <MatIcon>forum</MatIcon> <span class="miniHover">@L["AppNavForum"]</span>
+    </MatNavItem>*@
+
+
+
+@*<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+        <ul class="nav flex-column">
+            <li class="nav-item px-3">
+                <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                    <span class="oi oi-home" aria-hidden="true"></span> Home
+                </NavLink>
+            </li>
+            <li class="nav-item px-3">
+                <NavLink class="nav-link" href="counter">
+                    <span class="oi oi-plus" aria-hidden="true"></span> Counter
+                </NavLink>
+            </li>
+            <li class="nav-item px-3">
+                <NavLink class="nav-link" href="fetchdata">
+                    <span class="oi oi-list-rich" aria-hidden="true"></span> Fetch data
+                </NavLink>
+            </li>
+            <li class="nav-item px-3">
+                <NavLink class="nav-link" href="developer">
+                    <span class="oi oi-people" aria-hidden="true"></span> Developers
+                </NavLink>
+            </li>
+        </ul>
+    </div>*@
+
+@code {
+    //public bool IsAdmin = false;
+    public bool IsSuperAdmin = false;
+    [CascadingParameter]
+    Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var user = (await authenticationStateTask).User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            // IsLoggedIn = true;
+            IsSuperAdmin = user.IsInRole("SuperAdmin");
+        }
+    }
+
+}

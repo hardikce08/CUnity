@@ -1,0 +1,65 @@
+﻿@page "/admin/allsubscription"
+@layout AdminLayout
+@attribute [Authorize(Roles = DefaultRoleNames.SuperAdmin)]
+@inject AppState appState
+@inject CustomStateProvider SessionState
+@inject HttpClient Http
+@inject IMatToaster matToaster
+@inject NavigationManager navigationManager
+<h1>All Subscription</h1>
+<br>
+
+@if (allsubscriptions == null)
+{
+    <LoadingBackground ShowLogoBox="true">
+        <label>Loading All Client Subscription</label>
+    </LoadingBackground> }
+else
+{
+    <MatTable Class="mat-elevation-z5" Items="@allsubscriptions" Striped="true">
+        <MatTableHeader>
+            <th>Client Name</th>
+            <th>Product Name</th>
+            <th>Subscription Start</th>
+            <th>Subscription End</th>
+            <th>Key</th>
+        </MatTableHeader>
+        <MatTableRow Context="AllSubscriptionRow">
+            <!--<td>
+        <!--<div style="width:155px;">-->
+            -->
+            <!--@*<MatIconButton Icon="edit" OnClick="@(() => OpenUpsertApiResourceDialog(ApiResourceRow))"></MatIconButton>
+    <MatIconButton Icon="delete" OnClick="@(() => OpenDeleteApiResourceDialog(ApiResourceRow))"></MatIconButton>*@-->
+            <!--</div>-->
+            <!--</td>-->
+            <td>
+                @AllSubscriptionRow.ClientName
+            </td>
+            <td>
+                @AllSubscriptionRow.ProductName
+            </td>
+            <td>
+                @AllSubscriptionRow.SubscriptionStartDate.ToString("MM/dd/yyyy")
+            </td>
+            <td>
+                @AllSubscriptionRow.SubscriptionEndDate.ToString("MM/dd/yyyy")
+            </td>
+
+            <td>@AllSubscriptionRow.SubscriptionKey</td>
+        </MatTableRow>
+    </MatTable>}
+@code {
+    AllSubscriptionViewModel[] allsubscriptions { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            allsubscriptions = await Http.GetJsonAsync<AllSubscriptionViewModel[]>("api/subscription/GetAllSubscription");
+            matToaster.Add(string.Format("{0} Subscriptions found", allsubscriptions.Length), MatToastType.Success, "Operation Successful");
+        }
+        catch (Exception ex)
+        {
+            matToaster.Add(ex.GetBaseException().Message, MatToastType.Danger, "Initial Load Error");
+        }
+    }
+}

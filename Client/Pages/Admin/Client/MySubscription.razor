@@ -1,0 +1,173 @@
+﻿@page "/admin/mysubscription"
+@layout AdminLayout
+@attribute [Authorize(Roles = DefaultRoleNames.Administrator)]
+@inject AppState appState
+@inject CustomStateProvider SessionState
+@inject HttpClient Http
+@inject IJSRuntime js
+@inject IMatToaster matToaster
+@inject NavigationManager navigationManager
+<h1>Subscription</h1>
+<div class="form-group">
+    @*<a class="btn btn-success" href="UserSubscription/create"><i class="oi oi-plus"></i> Add New</a>*@
+    <MatButton Icon="add" Class="btn btn-themecolor" Label="New Subscription" OnClick="@(() => OpenUpsertSubscriptionDialog())"></MatButton>
+    
+</div>
+<br>
+
+@if (subscriptions == null)
+{
+    <LoadingBackground ShowLogoBox="true">
+        <label>Loading Subscription</label>
+    </LoadingBackground> }
+else
+{
+    <MatTable Class="mat-elevation-z5" Items="@subscriptions" Striped="true">
+        <MatTableHeader>
+            <th>Product Name</th>
+            <th>Subscription Start</th>
+            <th>Subscription End</th>
+            <th>Key</th>
+        </MatTableHeader>
+        <MatTableRow Context="SubscriptionRow">
+            <!--<td>
+                <!--<div style="width:155px;">-->
+            -->
+            <!--@*<MatIconButton Icon="edit" OnClick="@(() => OpenUpsertApiResourceDialog(ApiResourceRow))"></MatIconButton>
+            <MatIconButton Icon="delete" OnClick="@(() => OpenDeleteApiResourceDialog(ApiResourceRow))"></MatIconButton>*@-->
+            <!--</div>-->
+            <!--</td>-->
+            <td>
+                @SubscriptionRow.ProductName
+            </td>
+            <td>
+                @SubscriptionRow.SubscriptionStartDate.ToString("MM/dd/yyyy")
+            </td>
+            <td>
+                @SubscriptionRow.SubscriptionEndDate.ToString("MM/dd/yyyy")
+            </td>
+
+            <td>@SubscriptionRow.SubscriptionKey</td>
+        </MatTableRow>
+    </MatTable>}
+<MatDialog @bind-IsOpen="@isInsertSubscriptionDialogOpen" Style="z-index:100">
+    <MatDialogTitle>
+        @labelUpsertDialogTitle
+    </MatDialogTitle>
+    <MatDialogContent>
+        <EditForm Model="@currentsubscription">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <fieldset>
+                <div class="form-group">
+                    <MatTextField @bind-Value="@currentsubscription.SubscriptionKey" Label="Subscription Key" Icon="key" IconTrailing="true" Required="true"></MatTextField>
+                    <ValidationMessage For="@(() => currentsubscription.SubscriptionKey)" />
+                </div>
+            </fieldset>
+        </EditForm>
+    </MatDialogContent>
+    <MatDialogActions>
+        <MatButton Class="btn btn-themecolor" OnClick="@CancelChanges">Cancel</MatButton>&nbsp;&nbsp;
+        <MatButton Class="btn btn-themecolor secondbutton"  OnClick="@UpsertSubscription">@labelUpsertDialogOkButton</MatButton>
+    </MatDialogActions>
+</MatDialog>
+
+@code {
+    ClientSubscription[] subscriptions { get; set; }
+    ClientSubscription currentsubscription { get; set; } = new ClientSubscription();
+    public static int ClientId { get; set; }
+    private bool isInsertOperation = false;
+    private bool isInsertSubscriptionDialogOpen = false;
+    private string labelUpsertDialogTitle = "New Subscription";
+    private string labelUpsertDialogOkButton = "Save";
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            ClientId = Convert.ToInt32(((CurrentUser)(await SessionState.GetCurrentUser())).ClientId);
+            subscriptions = await Http.GetJsonAsync<ClientSubscription[]>("api/subscription/GetClientSubscription?id=" + ClientId);
+            matToaster.Add(string.Format("{0} Subscriptions found", subscriptions.Length), MatToastType.Success, "Operation Successful");
+        }
+        catch (Exception ex)
+        {
+            matToaster.Add(ex.GetBaseException().Message, MatToastType.Danger, "Initial Load Error");
+        }
+    }
+    void OpenUpsertSubscriptionDialog(ClientSubscription subscription = null)
+    {
+        try
+        {
+            isInsertOperation = subscription == null;
+            currentsubscription = subscription ?? new ClientSubscription();
+            isInsertSubscriptionDialogOpen = true;
+        }
+        catch (Exception ex)
+        {
+            matToaster.Add(ex.GetBaseException().Message, MatToastType.Danger, "Initial Load Error");
+        }
+    }
+    void CancelChanges()
+    {
+        //currentsubscription = null;
+        isInsertSubscriptionDialogOpen = false;
+    }
+
+    async Task UpsertSubscription()
+    {
+        try
+        {
+            if (currentsubscription == null)
+            {
+                matToaster.Add("Subscription Creation Error", MatToastType.Danger, "Subscription");
+                return;
+            }
+
+            if (isInsertSubscriptionDialogOpen)
+            {
+                if (string.IsNullOrEmpty(currentsubscription.SubscriptionKey))
+                {
+                    matToaster.Add("Please Enter Subscription Key", MatToastType.Danger, "Subscription");
+                    return;
+                }
+                else
+                {
+                    if (MainLayout.LoggedinUser == null || MainLayout.LoggedinUser.UserGuid == string.Empty)
+                    {
+                        matToaster.Add("Session Expired", MatToastType.Danger, "Login Again");
+                        navigationManager.NavigateTo(Constants.HomePath);
+                    }
+
+                    try
+                    {
+                        var res = CUnity.Shared.Utils.Encryption.Decrypt(currentsubscription.SubscriptionKey);
+                        var des = res.Split(",");
+                        currentsubscription.SubscriptionStartDate = Convert.ToDateTime(des[1]).Date;
+                        currentsubscription.SubscriptionEndDate = Convert.ToDateTime(des[2]).Date;
+                        currentsubscription.ProductName = des[3].ToString();
+                    }
+                    catch (Exception ex)
+                    {
+                        matToaster.Add("Please Enter Valid Subscription Key", MatToastType.Danger, "Subscription");
+                        return;
+                    }
+                    currentsubscription.ClientId = ClientId;
+                    currentsubscription.CreatedDate = DateTime.Now;
+                    await Http.PostAsJsonAsync("api/subscription", currentsubscription);
+                    isInsertSubscriptionDialogOpen = false;
+                    await Task.Run(StateHasChanged);
+                    await OnInitializedAsync();
+                    //await InvokeAsync(() =>
+                    //{
+                    //    StateHasChanged();
+                    //});
+                    //navigationManager.NavigateTo("/mysubscription", true);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            matToaster.Add(ex.GetBaseException().Message, MatToastType.Danger, "Operation Failed");
+        }
+    }
+}
+

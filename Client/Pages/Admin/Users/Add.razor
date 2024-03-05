@@ -1,0 +1,159 @@
+﻿@page "/admin/users/add"
+@layout AdminLayout
+@inject HttpClient client
+@inject IMatToaster matToaster
+@inject NavigationManager navigationManager
+@inject CustomStateProvider authStateProvider
+@using System.Net.Mail;
+@attribute [Authorize(Roles = "Administrator,SuperAdmin")]
+@*<MatCard>*@
+@*<div class="hidden-mdc-down">
+        <MatIconButton Icon="home" Class="float-left" Link="/" />
+    </div>
+    <div class="logo">
+        <img src="images/logo.svg" style="width:100px;" /><br />CUnity
+        <br />
+        <h4>Registration</h4>
+    </div>*@
+<EditForm Model="@registerViewModel" OnValidSubmit="@OnSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <fieldset>
+
+        @if (AdminLayout.IsSuperAdmin)
+        {
+            <div class="form-group">
+                @*<MatSelectItem @bind-Value="@registerViewModel.ClientName" Items="@Clients" Label="Select Client Name"></MatSelectItem>*@
+                @*<MatSelect Outlined="true" Label="Client" ValueExpression="@(()=>@registerViewModel.ClientName)"
+                               Value="@registerViewModel.ClientName"
+                               ValueChanged="@((string value) => OnValueChanged(value ))">
+                        <MatOptionString Value="-1">Select Client</MatOptionString>
+                        @foreach (var cl in Clients)
+                        {
+                            <MatOptionString Value="@cl.ToString()">@cl.ToString()</MatOptionString>
+                        }
+                    </MatSelect>
+                    <span>@selectedValue</span>*@
+
+
+                <MatSelect Outlined="true" Label="ClientName" ValueExpression="@(()=>@registerViewModel.ClientName)" ValueChanged="(string i) => OnChangeCategory(i)">
+                    <MatOptionString Value="-1">All</MatOptionString>
+                    @foreach (var cat in Clients)
+                    {
+                        <MatOptionString Value="@cat.ToString()">@cat.ToString()</MatOptionString>
+                    }
+                </MatSelect>
+                <span>@selectedValue</span>
+            </div>
+        }
+        <div class="form-group">
+            <MatTextField @bind-Value="@registerViewModel.FirstName" Label="First Name" Icon="mail_outline" IconTrailing="true" FullWidth="true" Required="true"></MatTextField>
+        </div>
+        <div class="form-group">
+            <MatTextField @bind-Value="@registerViewModel.LastName" Label="Last Name" Icon="mail_outline" IconTrailing="true" FullWidth="true" Required="true"></MatTextField>
+        </div>
+        <div class="form-group">
+            <MatTextField @bind-Value="@registerViewModel.UserName" Label="UserName" Icon="person" IconTrailing="true" FullWidth="true" Required="true"></MatTextField>
+            <ValidationMessage For="@(() => registerViewModel.UserName)" />
+
+        </div>
+        <div class="form-group">
+            <MatTextField @bind-Value="@registerViewModel.Email" Label="Email" Icon="mail_outline" IconTrailing="true" FullWidth="true" Required="true"></MatTextField>
+        </div>
+        <div class="form-group">
+            <MatTextField @bind-Value="@registerViewModel.Password" Label="Password" Icon="lock_outline" IconTrailing="true" FullWidth="true" Required="true" Type="password"></MatTextField>
+        </div>
+        <div class="form-group">
+            <MatTextField @bind-Value="@registerViewModel.PasswordConfirm" Label="Password Confirmation" Icon="lock_outline" IconTrailing="true" FullWidth="true" Required="true" Type="password"></MatTextField>
+        </div>
+        <div class="form-group">
+            <MatSelectItem @bind-Value="@registerViewModel.RoleName" Items="@Roles" Label="Select Role Name"></MatSelectItem>
+            <ValidationMessage For="@(() => registerViewModel.RoleName)" />
+        </div>
+        <div class="form-group d-flex justify-content-end">
+            <MatButton Type="submit" Raised="true">Register</MatButton>
+        </div>
+        <hr />
+        @*<NavLink href="login">
+                <h6 class="font-weight-normal text-center">Already have an account? Click here to login</h6>
+            </NavLink>*@
+    </fieldset>
+</EditForm>
+@*</MatCard>*@
+
+@code {
+    RegisterRequest registerViewModel { get; set; } = new RegisterRequest();
+    List<string> Roles { get; set; } = new List<string>() { "User" };
+    public List<string> Clients { get; set; } = new List<string>();
+    public Client[] lstClients { get; set; }
+    public string selectedValue;
+    public int ClientId { get; set; }
+
+    protected void OnChangeCategory(string value)
+    {
+        //do something
+        selectedValue = "Selected Value: " + value;
+        registerViewModel.ClientName = value;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            lstClients = await client.GetFromJsonAsync<Client[]>("api/subscription/GetClients");
+            Clients = lstClients.Select(p => p.Name).ToList();
+
+        }
+        catch (Exception ex)
+        {
+            matToaster.Add(ex.GetBaseException().Message, MatToastType.Danger, "Operation Failed");
+        }
+    }
+
+    async Task OnSubmit()
+    {
+        try
+        {
+            @if (AdminLayout.IsSuperAdmin)
+            {
+                // var lstClients = await client.GetFromJsonAsync<Client[]>("api/subscription/GetClient");
+                var res = lstClients.Where(p => p.Name == registerViewModel.ClientName).FirstOrDefault();
+                ClientId = res.Id;    // If logged in user is Super Admin then get the SEelcted Client Id
+            }
+            else
+            {
+                ClientId = Convert.ToInt32(((CurrentUser)(await authStateProvider.GetCurrentUser())).ClientId); // if client admin is logged in then select its Clientid as Default Client id
+            }
+            var DomainEmail = lstClients.Where(p => p.Id == ClientId).FirstOrDefault().Email;
+
+            registerViewModel.ClientEmail = DomainEmail;
+
+            if (!string.IsNullOrEmpty(registerViewModel.ClientEmail))
+            {
+                MailAddress address = new MailAddress(registerViewModel.ClientEmail);
+                string clientdomain = address.Host; // host contains yahoo.com if string is xyz@yahoo.com
+                address = new MailAddress(registerViewModel.Email);
+                string userdomain = address.Host; // host contains yahoo.com
+                address = null;
+                if (clientdomain != userdomain)
+                {
+                    matToaster.Add("User Email address Domain is not matching with Client Domain", MatToastType.Danger, "Registration Faild");
+                    return;
+                }
+            }
+
+            registerViewModel.ClientId = ClientId;
+
+            //registerViewModel.RoleName = "Administrator";
+            //registerViewModel.ClientId = 1;
+            await authStateProvider.Register(registerViewModel);
+            // var roleresult = _userManager.AddToRolesAsync(currentUser, "Administrator");
+            matToaster.Add("Registration Success", MatToastType.Success, "");
+            navigationManager.NavigateTo("/admin/users");
+        }
+        catch (Exception ex)
+        {
+            matToaster.Add(ex.Message, MatToastType.Danger, "Registration Faild");
+        }
+    }
+}
